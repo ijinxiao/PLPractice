@@ -102,7 +102,7 @@
                      [v4 (fun-formal (closure-fun v1))])
                  (if (eq? v3 #f)
                      (eval-under-env (fun-body (closure-fun v1)) (cons (cons v4 v2) (closure-env v1)))
-                     (eval-under-env (fun-body (closure-fun v1)) (cons (cons v3 (closure-fun v1)) (cons (cons v4 v2) (closure-env v1))))))
+                     (eval-under-env (fun-body (closure-fun v1)) (cons (cons v3 v1) (cons (cons v4 v2) (closure-env v1))))))
                (error ("MUPL call applied to non-closure"))))]
                
         ;; CHANGE add more cases here
@@ -118,17 +118,34 @@
   (if (aunit? (eval-exp e1)) (eval-exp e2) (eval-exp e3)))
 
 (define (mlet* lstlst e2)
-  )
+  (letrec ([calenv (lambda (lst env)
+                  (if (null? lst)
+                      env
+                      (calenv (cdr lst) (cons (cons (car (car lst)) (eval-under-env (cdr (car lst)) env)) env))))])
+    (eval-under-env e2 (calenv lstlst null))))
 
-(define (ifeq e1 e2 e3 e4) "CHANGE")
+(define (ifeq e1 e2 e3 e4)
+  (let ([v1 (eval-exp e1)]
+        [v2 (eval-exp e2)])
+    (if (and (int? v1) (int? v2) (= (int-num v1) (int-num v2)))
+        (eval-exp e3)
+        (eval-exp e4))))
 
 ;; Problem 4
 
-(define mupl-map "CHANGE")
+(define mupl-map
+  (fun #f "func"
+       (fun "map" "list"
+            (let ([func (var "func")]
+                  [list (var "list")])
+              (if (aunit? list)
+                  list
+                  (apair (call func (fst list))
+                         (call (var "map") (snd list))))))))
 
 (define mupl-mapAddN 
   (mlet "map" mupl-map
-        "CHANGE (notice map is now in MUPL scope)"))
+        ""))
 
 ;; Challenge Problem
 
