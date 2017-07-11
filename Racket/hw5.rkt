@@ -33,7 +33,7 @@
   (letrec ([transfer (lambda (mupllist racketlist)
                      (if (aunit? mupllist)
                          racketlist
-                         (cons (fst mupllist) (transfer (snd mupllist) racketlist))))])
+                         (cons (apair-e1 mupllist) (transfer (apair-e2 mupllist) racketlist))))])
     (transfer mupllist null)))
 
 ;; Problem 2
@@ -90,7 +90,7 @@
                (error "MUPL ifgreater applied to non-number")))]
         [(mlet? e)
          (let ([v (eval-under-env (mlet-e e) env)])
-           (eval-under-env (mlet-body e) (cons (cons (var-string (mlet-var e)) v) env)))]
+           (eval-under-env (mlet-body e) (cons (cons (mlet-var e) v) env)))]
         [(fun? e)
          (closure env e)]
         [(closure? e) e]
@@ -115,37 +115,38 @@
 ;; Problem 3
 
 (define (ifaunit e1 e2 e3)
-  (if (aunit? (eval-exp e1)) (eval-exp e2) (eval-exp e3)))
+  (ifgreater (isaunit e1) (int 0) e2 e3))
 
 (define (mlet* lstlst e2)
-  (letrec ([calenv (lambda (lst env)
+  (letrec ([calenv (lambda (lst)
                   (if (null? lst)
-                      env
-                      (calenv (cdr lst) (cons (cons (car (car lst)) (eval-under-env (cdr (car lst)) env)) env))))])
-    (eval-under-env e2 (calenv lstlst null))))
+                      e2
+                      (mlet (car (car lst)) (cdr (car lst)) (calenv (cdr lst)))))])
+    (calenv lstlst)))
 
 (define (ifeq e1 e2 e3 e4)
-  (let ([v1 (eval-exp e1)]
-        [v2 (eval-exp e2)])
-    (if (and (int? v1) (int? v2) (= (int-num v1) (int-num v2)))
-        (eval-exp e3)
-        (eval-exp e4))))
+  (mlet "_x" e1
+        (mlet "_y" e2
+              (ifgreater (var "_x") (var "_y")
+                         e4
+                         (ifgreater (var "_y") (var "_x")
+                                    e4
+                                    e3)))))
 
 ;; Problem 4
 
 (define mupl-map
   (fun #f "func"
        (fun "map" "list"
-            (let ([func (var "func")]
-                  [list (var "list")])
-              (if (aunit? list)
-                  list
-                  (apair (call func (fst list))
-                         (call (var "map") (snd list))))))))
+            (ifgreater (isaunit (var "list")) (int 0)
+                       (aunit)
+                       (apair (call (var "func") (fst (var "list")))
+                              (call (var "map") (snd (var "list"))))))))
 
 (define mupl-mapAddN 
   (mlet "map" mupl-map
-        ""))
+        (fun #f "addon"
+             (call (var "map") (fun #f "x" (add (var "x") (var "addon"))))))) 
 
 ;; Challenge Problem
 
